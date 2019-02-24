@@ -88,7 +88,6 @@ class _ProposalLayer(nn.Module):
         K = shifts.size(0)
 
         self._anchors = self._anchors.type_as(scores)
-        # anchors = self._anchors.view(1, A, 4) + shifts.view(1, K, 4).permute(1, 0, 2).contiguous()
         anchors = self._anchors.view(1, A, 4) + shifts.view(K, 1, 4)
         anchors = anchors.view(1, K * A, 4).expand(batch_size, K * A, 4)
 
@@ -107,24 +106,14 @@ class _ProposalLayer(nn.Module):
 
         # 2. clip predicted boxes to image
         proposals = clip_boxes(proposals, im_info, batch_size)
-        # proposals = clip_boxes_batch(proposals, im_info, batch_size)
 
         # assign the score to 0 if it's non keep.
-        # keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
-
-        # trim keep index to make it euqal over batch
-        # keep_idx = torch.cat(tuple(keep_idx), 0)
-
-        # scores_keep = scores.view(-1)[keep_idx].view(batch_size, trim_size)
-        # proposals_keep = proposals.view(-1, 4)[keep_idx, :].contiguous().view(batch_size, trim_size, 4)
+        keep = self._filter_boxes(proposals, min_size * im_info[:, 2])
         
-        # _, order = torch.sort(scores_keep, 1, True)
-        
-        scores_keep = scores
-        proposals_keep = proposals
+        scores_keep = torch.masked_select(scores, keep).view(batch_size, -1)
+        proposals_keep = torch.masked_select(proposals, keep[:, :, None]).view(batch_size, -1, proposals.size(2))
         _, order = torch.sort(scores_keep, 1, True)
 
-        output = scores.new(batch_size, post_nms_topN, 5).zero_()
         for i in range(batch_size):
             # # 3. remove predicted boxes with either height or width < threshold
             # # (NOTE: convert min_size to input image scale stored in im_info[2])
@@ -155,8 +144,9 @@ class _ProposalLayer(nn.Module):
 
             # padding 0 at the end.
             num_proposal = proposals_single.size(0)
-            output[i,:,0] = i
-            output[i,:num_proposal,1:] = proposals_single
+            output = scores.new(batch_size, num_proposal, 5).zero_()
+            output[i, :, 0] = i
+            output[i, :, 1:] = proposals_single
 
         return output
 
@@ -172,5 +162,5 @@ class _ProposalLayer(nn.Module):
         """Remove all boxes with any side smaller than min_size."""
         ws = boxes[:, :, 2] - boxes[:, :, 0] + 1
         hs = boxes[:, :, 3] - boxes[:, :, 1] + 1
-        keep = ((ws >= min_size.view(-1,1).expand_as(ws)) & (hs >= min_size.view(-1,1).expand_as(hs)))
+        keep = ((ws >= min_size) & (hs >= min_size))
         return keep
