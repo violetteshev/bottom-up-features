@@ -126,6 +126,13 @@ ext_modules = [
         extra_compile_args={
             'gcc': ['-Wno-cpp', '-Wno-unused-function', '-std=c99']},
     ),
+    Extension(
+        'numpy_nms.cpu_nms',
+        sources=['numpy_nms/cpu_nms.pyx'],
+        include_dirs=[numpy_include],
+        extra_compile_args={
+            'gcc': ['-Wno-cpp', '-Wno-unused-function']},
+    ),
 ]
 
 setup(
