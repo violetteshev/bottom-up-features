@@ -17,7 +17,7 @@ import yaml
 from model.utils.config import cfg
 from .generate_anchors import generate_anchors
 from .bbox_transform import bbox_transform_inv, clip_boxes, clip_boxes_batch
-from model.nms.nms_wrapper import nms
+from numpy_nms.cpu_nms import cpu_nms
 
 import pdb
 
@@ -112,7 +112,8 @@ class _ProposalLayer(nn.Module):
         
         scores_keep = torch.masked_select(scores, keep).view(batch_size, -1)
         proposals_keep = torch.masked_select(proposals, keep[:, :, None]).view(batch_size, -1, proposals.size(2))
-        _, order = torch.sort(scores_keep, 1, True)
+        # NOTE: sort on cuda tensor works differently 
+        _, order = torch.sort(scores_keep.cpu(), 1, True)
 
         for i in range(batch_size):
             # # 3. remove predicted boxes with either height or width < threshold
@@ -130,12 +131,7 @@ class _ProposalLayer(nn.Module):
             proposals_single = proposals_single[order_single, :]
             scores_single = scores_single[order_single].view(-1,1)
 
-            # 6. apply nms (e.g. threshold = 0.7)
-            # 7. take after_nms_topN (e.g. 300)
-            # 8. return the top proposals (-> RoIs top)
-
-            keep_idx_i = nms(torch.cat((proposals_single, scores_single), 1), nms_thresh, force_cpu=not cfg.USE_GPU_NMS)
-            keep_idx_i = keep_idx_i.long().view(-1)
+            keep_idx_i = cpu_nms(np.hstack((proposals_single, scores_single)), nms_thresh)
 
             if post_nms_topN > 0:
                 keep_idx_i = keep_idx_i[:post_nms_topN]
