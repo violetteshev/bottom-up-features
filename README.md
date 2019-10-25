@@ -35,7 +35,7 @@ This code implements an extraction of Bottom-up image features ([paper](https://
     sh make.sh
     ```
 
-5. Download the [pretrained model](https://www.dropbox.com/s/qo4xf1dx3oxi1h6/bottomup_pretrained_10_100.pth?dl=0) and put it in models/ folder.
+5. Download the pretrained model from [dropbox](https://www.dropbox.com/s/qo4xf1dx3oxi1h6/bottomup_pretrained_10_100.pth?dl=0) or [google drive](https://drive.google.com/file/d/10MBUgH_OygyEys59FNQ4qNGeQ9bl-ODb/view?usp=drivesdk) and put it in models/ folder.
 
 ## Feature Extraction
 
