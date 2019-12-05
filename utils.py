@@ -40,7 +40,7 @@ def get_image_blob(im):
 
 
 def save_features(output_file, features, boxes):
-    if boxes == None:
+    if boxes is None:
         res = features
     else:
         res = {'features': features, 'boxes': boxes}
